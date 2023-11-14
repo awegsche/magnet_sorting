@@ -42,32 +42,32 @@ exec,check_ip(b2);
 use, sequence=LHCB1;
 twiss;
 
-exec, do_twiss_monitors(lhcb1, "../model1/twiss.dat");
-exec, do_twiss_elements(lhcb1, "../model1/twiss_elements.dat");
+exec, do_twiss_monitors(lhcb1, "../model1_OUT_/twiss.dat");
+exec, do_twiss_elements(lhcb1, "../model1_OUT_/twiss_elements.dat");
 
 ! model
 use, sequence=lhcb1;
-exec, do_twiss_monitors(lhcb1, "twiss_model_b1.tfs", 0);
+exec, do_twiss_monitors(lhcb1, "twiss_model_b1_OUT_.tfs", 0);
 
 ! errors 
-call, file = "./errors_Q1.madx";
-call, file = "./errors_Q2.madx";
-exec, do_twiss_monitors(lhcb1, "twiss_err_b1.tfs", 0);
+call, file = "./errors_Q1_OUT_.madx";
+call, file = "./errors_Q2_OUT_.madx";
+exec, do_twiss_monitors(lhcb1, "twiss_err_b1_OUT_.tfs", 0);
 
 ! dump Q2 errors
 select, flag=error, clear;
 select, flag=error, pattern="MQXFB\.[AB]2.*";
-esave, file = "./table_errors_Q2.madx";
+esave, file = "./table_errors_Q2_OUT_.madx";
 
 ! dump Q1 errors
 select, flag=error, clear;
 select, flag=error, pattern="MQXFB\.[AB]1.*";
-esave, file = "./table_errors_Q1.madx";
+esave, file = "./table_errors_Q1_OUT_.madx";
 
 exec, match_tunes(0.31, 0.32, 1);
 if (_TRACK_ == 1) {
     exec, do_tracking(witherrors);
-    exec, do_twiss_monitors(lhcb1, "twiss_err_b1_tunematched.tfs", 0);
+    exec, do_twiss_monitors(lhcb1, "twiss_err_b1_tunematched_OUT_.tfs", 0);
 }
 
 

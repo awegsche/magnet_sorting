@@ -36,4 +36,32 @@ ln -s ${MAGNET_SORTING}/model/acc-models-lhc acc-models-lhc
 touch knobs.madx
 cd ..
 
+mkdir model10
+cd model10
+ln -s ${MAGNET_SORTING}/macros macros
+ln -s ${MAGNET_SORTING}/model/acc-models-lhc acc-models-lhc
+touch knobs.madx
+cd ..
+
+mkdir model11
+cd model11
+ln -s ${MAGNET_SORTING}/macros macros
+ln -s ${MAGNET_SORTING}/model/acc-models-lhc acc-models-lhc
+touch knobs.madx
+cd ..
+
+mkdir model12
+cd model12
+ln -s ${MAGNET_SORTING}/macros macros
+ln -s ${MAGNET_SORTING}/model/acc-models-lhc acc-models-lhc
+touch knobs.madx
+cd ..
+
+mkdir model13
+cd model13
+ln -s ${MAGNET_SORTING}/macros macros
+ln -s ${MAGNET_SORTING}/model/acc-models-lhc acc-models-lhc
+touch knobs.madx
+cd ..
+
 echo "pwd = ${MAGNET_SORTING}"

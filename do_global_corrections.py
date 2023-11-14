@@ -1,5 +1,7 @@
 from datetime import datetime
 import os
+import time
+import random as rnd
 from os import system
 from subprocess import Popen
 from omc3.scripts.fake_measurement_from_model import generate as fake_measurement
@@ -19,7 +21,7 @@ from typing import List, Union, Tuple
 MADX = "/home/awegsche/programs/madx/madx-gnu64"
 
 # path to twiss output
-MODEL_TWISS = "model/twiss_err_b1.tfs"
+MODEL_TWISS = "model/twiss_err_b1{}.tfs"
 
 # variable categories for global corrections
 # these are the magnet circuits used to correct, check that they match the triplets you want to correct
@@ -53,6 +55,7 @@ MAX_SIMS = 1000
 SUMM_PAIRING = "summ_pairing.tfs"
 SUMM_SUM = "summ_sum.tfs"
 SUMM_DIFF = "summ_diff.tfs"
+CONTINUE_PREVIOUS = False
 
 
 def main():
@@ -174,7 +177,7 @@ def do_analysis(summ: Summary):
 
 
 
-def do_sim(q1_errors: Q1Pairs, q2_errors: Q2Pairs) -> Tuple[float, float, float]:
+def do_sim(q1_errors: Q1Pairs, q2_errors: Q2Pairs, suffix="") -> Tuple[float, float, float]:
     """
     runs madx and simulates corrections
     returns:
@@ -188,13 +191,14 @@ def do_sim(q1_errors: Q1Pairs, q2_errors: Q2Pairs) -> Tuple[float, float, float]
         virgin lattice, but this is not implemented yet.
     """
     print("running simulation")
+    model_tws = MODEL_TWISS.format(suffix)
 
     if DO_MADX:
 
         print("running madx")
 
-        q2_errors.write_errors_to_file("model/errors_Q2.madx")
-        q1_errors.write_errors_to_file("model/errors_Q1.madx")
+        q2_errors.write_errors_to_file(f"model/errors_Q2{suffix}.madx")
+        q1_errors.write_errors_to_file(f"model/errors_Q1{suffix}.madx")
 
         if not q1_errors.check_correctability():
             raise CorrectabilityError([x.real_error for x in q1_errors.cold_masses])
@@ -202,18 +206,19 @@ def do_sim(q1_errors: Q1Pairs, q2_errors: Q2Pairs) -> Tuple[float, float, float]
             raise CorrectabilityError([x.real_error for x in q2_errors.cold_masses])
 
         template_file = open("job.inj.madx", "r")
-        jobfile = open("model/run_job.inj.madx", "w")
-        jobfile.write(template_file.read().replace("_TRACK_", "0")) # no tracking
+        jobfile = open(f"model/run_job.inj{suffix}.madx", "w")
+        content=template_file.read().replace("_TRACK_", "0") # no tracking
+        jobfile.write(content.replace("_OUT_", suffix)) # no tracking
         template_file.close()
         jobfile.close()
 
-        # remove twiss output, its existance after running madx indicates success
-        system(f"rm {MODEL_TWISS}")
+        # remove twiss output, its existence after running madx indicates success
+        system(f"rm {model_tws}")
 
         with open(os.devnull, "w") as devnull:
-            Popen([MADX, "run_job.inj.madx"], stdout=devnull, cwd="model").wait()
+            Popen([MADX, f"run_job.inj{suffix}.madx"], stdout=devnull, cwd="model").wait()
 
-        if not os.path.exists(f"{MODEL_TWISS}"):
+        if not os.path.exists(f"{model_tws}"):
             raise RuntimeError("twiss_err_b1.tfs does not exist")
             
 
@@ -228,7 +233,7 @@ def do_sim(q1_errors: Q1Pairs, q2_errors: Q2Pairs) -> Tuple[float, float, float]
     if DO_FR:
         print("creating response entrypoint")
         create_response_entrypoint(
-            outfile_path=Path("model1/FullResponse.h5"),
+            outfile_path=Path(f"model1{suffix}/FullResponse.h5"),
             creator="madx",
             optics_params=['PHASEX', 'PHASEY', 'BETX', 'BETY', 'Q'],
             variable_categories=VAR_CATS,
@@ -238,33 +243,33 @@ def do_sim(q1_errors: Q1Pairs, q2_errors: Q2Pairs) -> Tuple[float, float, float]
 
 
     # fake measurement
-    fake_measurement(twiss=MODEL_TWISS,
-                     model="model1/twiss.dat",
-                     outputdir="fake_measurements")
+    fake_measurement(twiss=model_tws,
+                     model=f"model1{suffix}/twiss.dat",
+                     outputdir=f"fake_measurements{suffix}")
 
 
     if DO_CORR:
         print("running global correction")
         global_correction.global_correction_entrypoint(
-            meas_dir="fake_measurements",
-            output_dir="global_corrections",
-            fullresponse_path="model1/FullResponse.h5",
+            meas_dir=f"fake_measurements{suffix}",
+            output_dir=f"global_corrections{suffix}",
+            fullresponse_path=f"model1{suffix}/FullResponse.h5",
             iterations=1,
             optics_params=['PHASEX', 'PHASEY', 'BETX', 'BETY', 'Q'],
             variable_categories=VAR_CATS,
             **accel_params,
                 )
-        system("cp scripts_global_corrs/rerun.job.madx global_corrections/rerun.job.madx")
+        system(f"cp scripts_global_corrs/rerun.job.madx global_corrections{suffix}/rerun.job.madx")
         with open(os.devnull, "w") as devnull:
-            Popen([MADX, "rerun.job.madx"], cwd="global_corrections", stdout=devnull).wait()
+            Popen([MADX, "rerun.job.madx"], cwd=f"global_corrections{suffix}", stdout=devnull).wait()
 
 
 
 
     # compare
-    check_twiss = tfs.read("global_corrections/twiss_global_b1.tfs")
-    err_twiss = tfs.read(MODEL_TWISS)
-    model_twiss = tfs.read("model1/twiss.dat")
+    check_twiss = tfs.read(f"global_corrections{suffix}/twiss_global_b1.tfs")
+    err_twiss = tfs.read(model_tws)
+    model_twiss = tfs.read(f"model1{suffix}/twiss.dat")
 
     #plt.plot(check_twiss["S"], check_twiss["BETX"]/model_twiss["BETX"]-1, label="check")
     #plt.plot(err_twiss["S"], err_twiss["BETX"]/model_twiss["BETX"]-1, label="err")
@@ -287,8 +292,92 @@ def do_sim(q1_errors: Q1Pairs, q2_errors: Q2Pairs) -> Tuple[float, float, float]
     return rms_check, rms_err, rms_diff
 
 
+
+def do_one_concurrent_sim(q1_errors, q2_errors, i, j):
+    perm = i +j
+    print("----------------------------------------")
+    print(f"---- sim {perm}")
+    print("----------------------------------------")
+    q1_errors.selected_permutation = perm
+    print("do sims")
+    check1, err1, diff1 = do_sim(q1_errors, q2_errors, str(j))
+    print("check1", check1, "err1", err1, "diff1", diff1)
+    params = {}
+    q2_errors.log_strengths(params)
+    q1_errors.log_strengths(params)
+    params["BBEAT"] = err1
+    params["CORR"] = diff1
+    params["CHECK"] = check1
+    return params
+
+def do_full_set():
+    import concurrent.futures
+    """ does a full set of simulation-correction studies for one seed.
+    This is obviously a large amount of simulations and will take a long time """
+    rnd.seed(0)  # want always the same seed
+    q2_errors = Q2Pairs(10,2)
+    q1_errors = Q1Pairs(10,2)
+
+    print("----------------------------------------")
+    print("---- doing a full set ------------------")
+    print("----------------------------------------")
+
+    next_index = 0
+
+    if CONTINUE_PREVIOUS:
+        previous = tfs.read_tfs("full_set_summary.tfs")
+        next_index = len(previous.index)
+
+    
+    starttime = time.time()
+    print("----------------------------------------")
+    print(f"---- continue at {next_index}")
+    print("----------------------------------------")
+
+    for i in range(next_index, len(q1_errors.permutations), 4):
+        print("----------------------------------------")
+        print(f"---- sim {i}-{i+4}")
+        print("----------------------------------------")
+
+        #q1_errors.selected_permutation = i
+
+        #do_one_concurrent_sim(q1_errors, q2_errors, i, 0)
+        #do_one_concurrent_sim(q1_errors, q2_errors, i, 1)
+        #do_one_concurrent_sim(q1_errors, q2_errors, i, 2)
+        #do_one_concurrent_sim(q1_errors, q2_errors, i, 3)
+
+        N_CORES = 1
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=N_CORES) as executor:
+            future = {executor.submit(do_one_concurrent_sim, q1_errors, q2_errors, i, j): j for j in range(N_CORES)}
+
+            for f in concurrent.futures.as_completed(future):
+                print(future)
+                try:
+                    params = f.result
+            
+                    print(f"params = ",params)
+
+                    write_summary(params, "full_set_summary.tfs")
+                except Exception as e:
+                    print(e)
+
+        
+        after = time.time()
+        elapsed = after - starttime
+        time_per_sim = elapsed / float(i - next_index+1)
+        print(f"elapsed: {elapsed}")
+        print(f"per sim: {time_per_sim}")
+        remaining = len(q1_errors.permutations) - i
+        print(f"remaining: {remaining} sims")
+        print(f"remaining time: {remaining * time_per_sim / 60} min")
+
+
+    
+
 def rms(array):
     """ root mean square """
     return np.sqrt(np.mean(array**2))
 
-main()
+#main()
+do_full_set()
