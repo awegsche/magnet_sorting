@@ -379,5 +379,5 @@ def rms(array):
     """ root mean square """
     return np.sqrt(np.mean(array**2))
 
-#main()
-do_full_set()
+main()
+#do_full_set()
