@@ -97,6 +97,34 @@ data = summ["CORR_AFTER"]/summ["CORR"]
 
 plt.close()
 
+# --------------------------------------------------------------------------------------------------
+
+full_set = tfs.read("full_set_summary.tfs")
+#full_set = full_set[full_set["BBEAT"] < 0.07]
+
+print(full_set)
+
+fig = plt.gcf()
+
+plt.xlim(0,0.25)
+plt.ylim(0,0.006)
+fig.set_size_inches(6, 4)
+plt.scatter(full_set["BBEAT"], full_set["CHECK"],
+            c=full_set["SCORE_Q2"],
+            s=2)
+plt.xlabel("initial BBEAT")
+plt.ylabel("after CORR")
+colorbar = plt.colorbar()
+colorbar.set_label("'SUM' score")
+plt.savefig("correlation_full.pdf")
+
+print("=== Dif ================================")
+summ = tfs.read("summ_diff.tfs")
+
+data = summ["CORR_AFTER"]/summ["CORR"]
+
+plt.close()
+
 data_over = [x for x in data if x >= 1]
 print("CORR > 0")
 print(len(data_over)/len(data))

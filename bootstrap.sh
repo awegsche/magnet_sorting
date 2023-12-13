@@ -19,15 +19,43 @@ cd ..
 pip install -e omc3
 
 # --- setup model output ---------------------------------------------------------------------------
-mkdir model
-
-cd model
+mkdir model_fr
+cd model_fr
 ln -s ${MAGNET_SORTING}/macros macros
 git clone ssh://git@gitlab.cern.ch:7999/acc-models/acc-models-lhc.git
 cd acc-models-lhc
 git checkout hl16
 touch knobs.madx
 cd ../..
+
+mkdir model_fr0
+cd model_fr0
+ln -s ${MAGNET_SORTING}/macros macros
+ln -s ${MAGNET_SORTING}/model/acc-models-lhc acc-models-lhc
+touch knobs.madx
+cd ..
+
+mkdir model_fr1
+cd model_fr1
+ln -s ${MAGNET_SORTING}/macros macros
+ln -s ${MAGNET_SORTING}/model/acc-models-lhc acc-models-lhc
+touch knobs.madx
+cd ..
+
+mkdir model_fr2
+cd model_fr2
+ln -s ${MAGNET_SORTING}/macros macros
+ln -s ${MAGNET_SORTING}/model/acc-models-lhc acc-models-lhc
+touch knobs.madx
+cd ..
+
+mkdir model_fr3
+cd model_fr3
+ln -s ${MAGNET_SORTING}/macros macros
+ln -s ${MAGNET_SORTING}/model/acc-models-lhc acc-models-lhc
+touch knobs.madx
+cd ..
+
 
 mkdir model1
 cd model1

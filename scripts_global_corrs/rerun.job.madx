@@ -26,7 +26,7 @@ use, sequence=lhcb1;
 exec, do_twiss_monitors(lhcb1, "twiss_model_b1.tfs", 0);
 
 ! predict errors from global_corrs
-call, file = "../global_corrections/changeparameters_iter.madx";
+call, file = "changeparameters_iter.madx";
 exec, do_twiss_monitors(lhcb1, "twiss_global_b1.tfs", 0);
 select, flag=error, clear;
 select, flag=error, pattern="MQXFB\.[AB]2.*";
